@@ -152,18 +152,15 @@ for (x in vars) {
     }
   }
 }
+graphviz.plot(g)
 
-for (i in c(1:length(vars)-1)){
+for (i in c(1:(length(vars)-1))){
   for (j in c((i+1):length(vars))){
     x = vars[i]
     y = vars[j]
-    v = g$arcs[g$arcs[,"from"]==x,]
+    v = g$nodes[[x]]$nbr
     #for(z in v[,"to"],c(x,y)){
-    if(class(v)=="character"){
-      v=t(as.matrix(v))
-    }
-    for(z in setdiff(v[,"to"],c(x,y))){
-      print(y)
+    for(z in setdiff(v,c(x,y))){
       if(!dep(x = x, y = y, z = z, seuil=0.01)){
         g = drop.edge(g, from = x, to = y)
         break
@@ -171,28 +168,37 @@ for (i in c(1:length(vars)-1)){
     }
   }
 }
-
-for (i in c(1:length(vars)-1)){
-  for (j in c(i+1:length(vars))){
-    x = vars[i]
-    y = vars[j]
-    v = g$arcs[g$arcs[,"from"]==x,]
-    print(v)
-    for(z in v[,"to"]){
-      for(z in v[,"to"]){
-        if(!dep(x = x, y = y, z = z, seuil=0.01)){
-          g = drop.edge(g, from = x, to = y)
-          break
-        }
-      }
-      if(!dep(x = x, y = y, z = z, seuil=0.01)){
-        g = drop.edge(g, from = x, to = y)
+graphviz.plot(g)
+supprimeVstructure <- function(indice){
+  for (i in c(1:(length(vars)-1))){
+    for (j in c((i+1):length(vars))){
+      x = vars[i]
+      y = vars[j]
+      v = g$nodes[[x]]$nbr
+      v = setdiff(v,c(x,y))
+      if(indice>length(v)){
         break
+      }
+      combinaisons = combn(v,indice)
+      for(k in c(1:ncol(combinaisons))){
+          z = as.array(combinaisons[,k])
+          if(!dep(x = x, y = y, z = z, seuil=0.01)){
+            g = drop.edge(g, from = x, to = y)
+            break
+          }
       }
     }
   }
 }
-
+supprimeVstructure(1)
+graphviz.plot(g)
+supprimeVstructure(2)
+graphviz.plot(g)
+supprimeVstructure(4)
+graphviz.plot(g)
+supprimeVstructure(5)
+graphviz.plot(g)
+supprimeVstructure(6)
 graphviz.plot(g)
 
 
