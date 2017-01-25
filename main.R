@@ -1,5 +1,8 @@
 # Rendu : maxime.gasse@gmail.com
 
+# auteurs : Bruno Dumas
+#           Grégory Howard 11207726  
+# Run q'une seulle fois
 #install.packages("bnlearn")
 #source("http://bioconductor.org/biocLite.R")
 #biocLite(c("graph", "Rgraphviz"))
@@ -59,19 +62,19 @@ dep <- function(x, y, z, seuil){
   return(res$p.value < seuil)
 }
 
-# STKV indépendant de HR | ∅;
+# STKV indépendant de HR;
 dep(x = "STKV", y = "HR", z = NULL, seuil=0.05)
 
 # STKV indépendant de HR | CO;
 dep(x = "STKV", y = "HR", z = "CO", seuil=0.05)
 
-# HR indépendant de CO | ∅;
+# HR indépendant de CO;
 dep(x = "HR", y = "CO", z = NULL, seuil=0.05)
 
 # HR indépendant de CO | STKV;
 dep(x = "HR", y = "CO", z = "STKV", seuil=0.05)
 
-# CO indépendant de STKV | ∅;
+# CO indépendant de STKV;
 dep(x = "CO", y = "STKV", z = NULL, seuil=0.05)
 
 # CO indépendant de STKV | HR.
@@ -108,7 +111,7 @@ bn[["CO"]]
 
 # Inférence approchée
 
-# On peut calculer (inférer) n'importe quelle probabilité à partir du réseau bayésien avec la commande cpquery(). Exécutez plusieurs fois les instructions suivantes. Qu'observez-vous?
+# On peut calculer (inférer) n'importe quelle probabilité à  partir du réseau bayésien avec la commande cpquery(). Exécutez plusieurs fois les instructions suivantes. Qu'observez-vous?
 
 cpquery(bn, event = (STKV == "HIGH"), evidence = (HR == "LOW"))
 cpquery(bn, event = (STKV == "HIGH"), evidence = (HR == "LOW" & CO == "LOW"))
@@ -116,7 +119,7 @@ cpquery(bn, event = (STKV == "HIGH"), evidence = (HR == "LOW" & CO == "LOW"))
 
 # Inférence exacte
 
-# Récupérez le fichier includes.R qui contient la fonction exact.dist(), et ajoutez-le à votre projet. Vous pouvez désormais faire de l'inférence exacte comme suit:
+# Récupérez le fichier includes.R qui contient la fonction exact.dist(), et ajoutez-le à  votre projet. Vous pouvez désormais faire de l'inférence exacte comme suit:
 
 source("includes.R")
 
@@ -145,6 +148,7 @@ m = margin.table(t, c(1,2))
 # L'algorithme PC
 vars = colnames(alarm)
 g = empty.graph(vars)
+# création des arcs si il y a une dépendance
 for (x in vars) {
   for (y in setdiff(vars, x)) {
     if(dep(x = x, y = y, z = NULL, seuil=0.01)){
@@ -154,51 +158,34 @@ for (x in vars) {
 }
 graphviz.plot(g)
 
-for (i in c(1:(length(vars)-1))){
-  for (j in c((i+1):length(vars))){
-    x = vars[i]
-    y = vars[j]
-    v = g$nodes[[x]]$nbr
-    #for(z in v[,"to"],c(x,y)){
-    for(z in setdiff(v,c(x,y))){
-      if(!dep(x = x, y = y, z = z, seuil=0.01)){
-        g = drop.edge(g, from = x, to = y)
-        break
-      }
-    }
-  }
-}
-graphviz.plot(g)
-supprimeVstructure <- function(indice){
+# fonction du suppression d'arc
+# indice : nombre d'éléments présent dans la partie "sachant que" des dépendances
+supprimeVstructure <- function(indice, g){
   for (i in c(1:(length(vars)-1))){
+    voisins = g$nodes[[x]]$nbr
+    if(indice>length(voisins)){
+      break
+    }
     for (j in c((i+1):length(vars))){
       x = vars[i]
       y = vars[j]
-      v = g$nodes[[x]]$nbr
-      v = setdiff(v,c(x,y))
+      v = setdiff(voisins,c(x,y))
       if(indice>length(v)){
         break
       }
       combinaisons = combn(v,indice)
       for(k in c(1:ncol(combinaisons))){
-          z = as.array(combinaisons[,k])
-          if(!dep(x = x, y = y, z = z, seuil=0.01)){
-            g = drop.edge(g, from = x, to = y)
-            break
-          }
+        z = as.array(combinaisons[,k])
+        if(!dep(x = x, y = y, z = z, seuil=0.01)){
+          g = drop.edge(g, from = x, to = y)
+          break
+        }
       }
     }
   }
+  return(g)
 }
-supprimeVstructure(1)
-graphviz.plot(g)
-supprimeVstructure(2)
-graphviz.plot(g)
-supprimeVstructure(4)
-graphviz.plot(g)
-supprimeVstructure(5)
-graphviz.plot(g)
-supprimeVstructure(6)
-graphviz.plot(g)
-
-
+for(i in c(1:ncol(alarm))){
+  g=supprimeVstructure(i,g)
+  graphviz.plot(g)
+}
