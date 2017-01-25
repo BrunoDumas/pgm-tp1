@@ -215,6 +215,15 @@ for(i in c(1:ncol(alarm))){
 }
 
 # Orienter les arcs
+hasArc <- function(g,x,y){
+  arc=g$arcs[which(g$arcs[,"from"]==x & g$arcs[,"to"]==y),]
+  # si c'est une matrix => alors pas de res
+  if( class(arc=="matrix")){
+    return(FALSE)
+  }
+  return(TRUE)
+}
+
 for(e in 1:(length(zEns))){
   if(! hasArc(g, zEns[[e]]["x"], zEns[[e]]["y"])){
     for(w in setdiff(vars, c(zEns[[e]]["x"], zEns[[e]]["y"], zEns[[e]]["x"], zEns[[e]]["z"]))){
