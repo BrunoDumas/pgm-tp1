@@ -54,7 +54,7 @@ prop.table(ct, margin = 2)
 
 
 # Tests d'indépendances
-dep <- function(x, y, z, seuil){
+dep <- function(x, y, z, seuil = 0.01){
   res = ci.test(x = x, y = y, z = as.character(z), data = alarm, test = "mi")
   
   # TRUE -> dependants
@@ -131,11 +131,19 @@ sum(p["HIGH", "LOW", "LOW"]) / sum(p[, "LOW", "LOW"])
 # p(STKV=HIGH | HR=LOW, CO=LOW)
 
 
+#####################################
+#            Do-calculus            #
+#####################################
+
+# HYP sachant STKV
+p = exact.dist(bn, event = c("HYP", "STKV"), evidence = TRUE)
+
+t2 = prop.table(p, margin = c(2))
+
+# HYP sachant STKV et LVV
 p = exact.dist(bn, event = c("HYP", "STKV","LVV"), evidence = TRUE)
 lvv = exact.dist(bn, event = c("LVV"), evidence = TRUE)
 
-
-# HYP sachant STKV et LVV
 t = prop.table(p, margin = c(2,3))
 t[,,"HIGH"]=t[,,"HIGH"]*lvv["HIGH"]
 t[,,"LOW"]=t[,,"LOW"]*lvv["LOW"]
@@ -143,15 +151,28 @@ t[,,"NORMAL"]=t[,,"NORMAL"]*lvv["NORMAL"]
 # Somme par rapport aux dimensions d'une matrice en gardant dim 1 et 2
 m = margin.table(t, c(1,2))
 
+m
+t2
+# P(HYP | STKV) != P(HYP | do(STKV))
 
+#####################################
+#          L'algorithme PC          #
+#####################################
+# Fonction de calcul de dépendance
+dep <- function(x, y, z, seuil = 0.01){
+  res = ci.test(x = x, y = y, z = as.character(z), data = alarm, test = "mi")
+  
+  # TRUE -> dependants
+  # FALSE -> dependants
+  return(res$p.value < seuil)
+}
 
-# L'algorithme PC
 vars = colnames(alarm)
 g = empty.graph(vars)
 # création des arcs si il y a une dépendance
 for (x in vars) {
   for (y in setdiff(vars, x)) {
-    if(dep(x = x, y = y, z = NULL, seuil=0.01)){
+    if(dep(x = x, y = y, z = NULL)){
       g = set.edge(g, from = x, to = y)
     }
   }
@@ -160,6 +181,7 @@ graphviz.plot(g)
 
 # fonction du suppression d'arc
 # indice : nombre d'éléments présent dans la partie "sachant que" des dépendances
+zEns = list()
 supprimeVstructure <- function(indice, g){
   for (i in c(1:(length(vars)-1))){
     voisins = g$nodes[[x]]$nbr
@@ -176,8 +198,9 @@ supprimeVstructure <- function(indice, g){
       combinaisons = combn(v,indice)
       for(k in c(1:ncol(combinaisons))){
         z = as.array(combinaisons[,k])
-        if(!dep(x = x, y = y, z = z, seuil=0.01)){
+        if(!dep(x = x, y = y, z = z)){
           g = drop.edge(g, from = x, to = y)
+          zEns[[length(zEns)+1]] <<- list(x=x, y=y, z=z)
           break
         }
       }
@@ -185,7 +208,20 @@ supprimeVstructure <- function(indice, g){
   }
   return(g)
 }
+
 for(i in c(1:ncol(alarm))){
   g=supprimeVstructure(i,g)
   graphviz.plot(g)
 }
+
+# Orienter les arcs
+for(e in 1:(length(zEns))){
+  if(! hasArc(g, zEns[[e]]["x"], zEns[[e]]["y"])){
+    for(w in setdiff(vars, c(zEns[[e]]["x"], zEns[[e]]["y"], zEns[[e]]["x"], zEns[[e]]["z"]))){
+      g = set.arc(g, from = x, to = w)
+      g = set.arc(g, from = y, to = w)
+    }
+  }
+}
+
+
