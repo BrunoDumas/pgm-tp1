@@ -189,3 +189,14 @@ for(i in c(1:ncol(alarm))){
   g=supprimeVstructure(i,g)
   graphviz.plot(g)
 }
+
+# Orienter les arcs
+hasArc <- function(g,x,y){
+  arc=g$arcs[which(g$arcs[,"from"]==x & g$arcs[,"to"]==y),]
+  # si c'est une matrix => alors pas de res
+  if( class(arc=="matrix")){
+    return(FALSE)
+  }
+  return(TRUE)
+  
+}
