@@ -185,23 +185,22 @@ zEns = list()
 supprimeVstructure <- function(indice, g){
   for (i in c(1:(length(vars)-1))){
     voisins = g$nodes[[x]]$nbr
-    if(indice>length(voisins)){
-      break
-    }
-    for (j in c((i+1):length(vars))){
-      x = vars[i]
-      y = vars[j]
-      v = setdiff(voisins,c(x,y))
-      if(indice>length(v)){
-        break
-      }
-      combinaisons = combn(v,indice)
-      for(k in c(1:ncol(combinaisons))){
-        z = as.array(combinaisons[,k])
-        if(!dep(x = x, y = y, z = z)){
-          g = drop.edge(g, from = x, to = y)
-          zEns[[length(zEns)+1]] <<- list(x=x, y=y, z=z)
+    if(length(voisins)>=indice){
+      for (j in c((i+1):length(vars))){
+        x = vars[i]
+        y = vars[j]
+        v = setdiff(voisins,c(x,y))
+        if(indice>length(v)){
           break
+        }
+        combinaisons = combn(v,indice)
+        for(k in c(1:ncol(combinaisons))){
+          z = as.array(combinaisons[,k])
+          if(!dep(x = x, y = y, z = z)){
+            g = drop.edge(g, from = x, to = y)
+            zEns[[length(zEns)+1]] <<- list(x=x, y=y, z=z)
+            break
+          }
         }
       }
     }
@@ -218,17 +217,25 @@ for(i in c(1:ncol(alarm))){
 hasArc <- function(g,x,y){
   arc=g$arcs[which(g$arcs[,"from"]==x & g$arcs[,"to"]==y),]
   # si c'est une matrix => alors pas de res
-  if( class(arc=="matrix")){
+  if( class(arc)=="matrix"){
     return(FALSE)
   }
   return(TRUE)
 }
 
+# Error in arc.operations(x = x, from = from, to = to, op = "set", check.cycles = check.cycles,  : 
+#     the resulting graph contains cycles. 
 for(e in 1:(length(zEns))){
-  if(! hasArc(g, zEns[[e]]["x"], zEns[[e]]["y"])){
-    for(w in setdiff(vars, c(zEns[[e]]["x"], zEns[[e]]["y"], zEns[[e]]["x"], zEns[[e]]["z"]))){
-      g = set.arc(g, from = x, to = w)
-      g = set.arc(g, from = y, to = w)
+  x = as.character(zEns[[e]]["x"])
+  y = as.character(zEns[[e]]["y"])
+  ws = zEns[[e]]["w"]
+  if(! hasArc(g, x, y)){
+    for(w in setdiff(vars, union(x, union(y, ws)))){
+      w = as.character(w)
+      #if(w %in% g$nodes[[x]]$nbr & w %in% g$nodes[[as.character(y)]]$nbr){
+        g = set.arc(g, from = x, to = w)
+        g = set.arc(g, from = y, to = w)
+      #}
     }
   }
 }
